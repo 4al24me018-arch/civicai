@@ -1,0 +1,1016 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CivicLens AI | Smart Civic Complaints</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#f4f7fb;color:#172033}
+header{background:#102b50;color:white;padding:15px 5%;display:flex;align-items:center;justify-content:space-between;gap:15px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:12px}
+.brand img{width:65px;height:65px;object-fit:contain;background:white;border-radius:8px}
+.brand h1{font-size:22px;margin:0}
+.brand p{font-size:12px;margin:5px 0 0;color:#cbd8e8}
+nav{display:flex;gap:8px;flex-wrap:wrap}
+button,select,input,textarea{font:inherit}
+button{cursor:pointer;border:0;border-radius:8px;padding:11px 16px;font-weight:600}
+nav button{background:#24466f;color:white}
+nav button:hover{background:#35649a}
+.lang-select{padding:10px;border-radius:8px;border:0}
+main{max-width:1200px;margin:25px auto;padding:0 18px}
+.hero{background:linear-gradient(120deg,#12365f,#2877a8);color:white;border-radius:16px;padding:30px;margin-bottom:22px}
+.hero h2{font-size:28px;margin:0 0 10px}
+.hero p{line-height:1.6;margin:0}
+.layout{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.panel{background:white;padding:22px;border-radius:14px;box-shadow:0 3px 15px #102b5010;margin-bottom:20px}
+.panel h2,.panel h3{margin-top:0;color:#15385e}
+label{display:block;font-weight:600;margin:14px 0 7px}
+input,select,textarea{width:100%;padding:12px;border:1px solid #cbd5e1;border-radius:8px;background:white}
+textarea{min-height:105px;resize:vertical}
+.primary{background:#1769aa;color:white}
+.secondary{background:#e7f1fa;color:#174b78}
+.danger{background:#fee2e2;color:#991b1b}
+.form-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:15px}
+.photo-options{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+.photo-options button{flex:1;min-width:130px}
+#photoPreview{display:none;max-width:100%;max-height:230px;object-fit:contain;border-radius:10px;margin-top:12px;border:1px solid #ddd}
+#map,#complaintMap{height:340px;border-radius:12px;z-index:1}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.stat{background:#edf5fc;padding:16px;border-radius:10px;text-align:center}
+.stat strong{display:block;font-size:25px;color:#155b91}
+.stat span{font-size:12px;color:#526477}
+.hidden{display:none!important}
+.complaint{border:1px solid #e2e8f0;padding:14px;border-radius:10px;margin:12px 0;overflow-wrap:anywhere}
+.complaint p{margin:7px 0;line-height:1.5}
+.tag{display:inline-block;padding:5px 9px;border-radius:20px;background:#e8f2fc;color:#17588c;font-size:12px;margin:3px}
+.status{background:#fff2d8;color:#895500}
+.resolved{background:#dcfce7;color:#166534}
+.high{background:#fee2e2;color:#991b1b}
+.medium{background:#fef3c7;color:#92400e}
+.low{background:#dcfce7;color:#166534}
+.muted{color:#64748b;font-size:13px}
+footer{text-align:center;padding:25px;color:#64748b}
+.page-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+.page-tabs button{background:#e7f1fa;color:#174b78}
+.page-tabs button.active{background:#1769aa;color:white}
+.progress-step{padding:9px;border-left:3px solid #1769aa;margin:8px 0;background:#f5f9fd}
+.small-button{padding:8px 11px;font-size:13px}
+.grid-two{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.result-box{background:#edf5fc;padding:15px;border-radius:10px;margin-top:12px}
+.result-box p{line-height:1.5}
+.metric{font-size:25px;font-weight:bold;color:#155b91}
+canvas{max-width:100%;max-height:300px}
+hr{border:0;border-top:1px solid #e2e8f0;margin:16px 0}
+@media(max-width:800px){
+ .layout,.grid-two{grid-template-columns:1fr}
+ .stats{grid-template-columns:repeat(2,1fr)}
+ header{align-items:flex-start}
+ nav button{padding:9px 11px;font-size:12px}
+ .brand img{width:52px;height:52px}
+}
+</style>
+</head>
+<body>
+
+<header>
+ <div class="brand">
+  <img src="https://images.jdmagicbox.com/v2/comp/haveri/t3/9999p8375.8375.260317205434.s5t3/catalogue/alvas-institute-of-engineering-and-technology-mangalore-moodbidri-haveri-bazar-haveri-engineering-colleges-iogvgmooj3.jpg" alt="Alva's logo">
+  <div>
+   <h1>CivicLens AI</h1>
+   <p>Smart Civic Complaint Management</p>
+  </div>
+ </div>
+ <nav>
+  <button onclick="showPage('home')">Home</button>
+  <button onclick="showPage('dashboard')">Dashboard</button>
+  <button onclick="showPage('track')">Track</button>
+  <button onclick="showPage('mapPage')">Complaint Map</button>
+  <button onclick="showPage('analytics')">Analytics</button>
+  <button onclick="showPage('feedback')">Feedback</button>
+  <select class="lang-select" id="language" onchange="changeLanguage(this.value)">
+   <option value="en">English</option>
+   <option value="kn">ಕನ್ನಡ</option>
+  </select>
+ </nav>
+</header>
+
+<main>
+
+<!-- HOME PAGE -->
+<section id="homePage">
+ <div class="hero">
+  <h2>Make Your Community Better</h2>
+  <p>Report civic issues, share their location and help authorities take action.</p>
+ </div>
+
+ <div class="layout">
+  <section class="panel">
+   <h2>Submit a Complaint</h2>
+   <form id="complaintForm">
+    <label for="citizenName">Your Name</label>
+    <input id="citizenName" required placeholder="Enter your name">
+
+    <label for="category">Complaint Category</label>
+    <select id="category" required>
+     <option value="">Select category</option>
+     <option value="Road">Road / ರಸ್ತೆ</option>
+     <option value="Water">Water / ನೀರು</option>
+     <option value="Garbage">Garbage / ಕಸ</option>
+     <option value="Streetlight">Streetlight / ಬೀದಿ ದೀಪ</option>
+     <option value="Drainage">Drainage / ಚರಂಡಿ</option>
+     <option value="Other">Other / ಇತರೆ</option>
+    </select>
+
+    <label for="area">Area / Location</label>
+    <input id="area" required placeholder="Enter area or locality">
+
+    <label for="description">Describe the Problem</label>
+    <textarea id="description" required placeholder="Explain the civic issue..."></textarea>
+
+    <div class="form-actions">
+     <button type="button" class="primary" id="voiceButton" onclick="toggleVoiceInput()">🎤 Speak Complaint</button>
+    </div>
+    <p id="voiceStatus" class="muted">Speak in English or Kannada. Review the text before submitting.</p>
+
+    <label>Add a Complaint Photo (Optional)</label>
+    <p class="muted">Take a photo using your camera or upload one from your device.</p>
+    <div class="photo-options">
+     <button type="button" class="primary" onclick="document.getElementById('cameraInput').click()">📷 Take Photo</button>
+     <button type="button" class="secondary" onclick="document.getElementById('uploadInput').click()">🖼 Upload Photo</button>
+    </div>
+    <input id="cameraInput" type="file" accept="image/*" capture="environment" hidden>
+    <input id="uploadInput" type="file" accept="image/*" hidden>
+    <img id="photoPreview" alt="Complaint photo preview">
+    <button type="button" id="removePhoto" class="danger hidden" onclick="removePhoto()">Remove Photo</button>
+
+    <label>Complaint Location on Map</label>
+    <p class="muted">Click the map to mark the complaint location.</p>
+    <div id="map"></div>
+    <div class="form-actions">
+     <button type="button" class="secondary" onclick="useMyLocation()">Use My Location</button>
+    </div>
+    <p id="selectedLocation" class="muted">No location selected yet.</p>
+
+    <div class="form-actions">
+     <button type="submit" class="primary">Submit Complaint</button>
+     <button type="reset" class="secondary">Clear Form</button>
+    </div>
+   </form>
+   <div id="submitMessage" aria-live="polite"></div>
+  </section>
+
+  <section class="panel">
+   <h2>How CivicLens AI Works</h2>
+   <div class="complaint"><strong>1. Report an Issue</strong><p>Citizens submit complaints with a description, location and optional photo.</p></div>
+   <div class="complaint"><strong>2. Smart Analysis</strong><p>The system analyses the complaint, suggests a priority, generates a summary and checks for similar reports.</p></div>
+   <div class="complaint"><strong>3. Department Assignment</strong><p>The complaint is directed to the suggested responsible department for review.</p></div>
+   <div class="complaint"><strong>4. Authority Action</strong><p>Authorities review complaints, update progress and provide resolution details.</p></div>
+   <div class="complaint"><strong>5. Citizen Feedback</strong><p>Citizens track the complaint and provide feedback after resolution.</p></div>
+   <h3>Platform Overview</h3>
+   <p class="muted">CivicLens AI connects citizen reports, issue analysis, authority workflows and complaint tracking in one prototype.</p>
+   <button class="primary" onclick="showPage('dashboard')">Open Authority Dashboard</button>
+  </section>
+ </div>
+</section>
+
+<!-- AUTHORITY DASHBOARD -->
+<section id="dashboardPage" class="hidden">
+ <div class="hero">
+  <h2>Authority Dashboard</h2>
+  <p>Review complaints, identify priorities, assign departments and update progress.</p>
+ </div>
+ <div class="stats">
+  <div class="stat"><strong id="totalCount">0</strong><span>Total Complaints</span></div>
+  <div class="stat"><strong id="pendingCount">0</strong><span>Pending</span></div>
+  <div class="stat"><strong id="progressCount">0</strong><span>In Progress</span></div>
+  <div class="stat"><strong id="resolvedCount">0</strong><span>Resolved</span></div>
+ </div>
+ <section class="panel" style="margin-top:20px">
+  <h2>All Complaints</h2>
+  <div class="form-actions">
+   <input id="searchComplaint" placeholder="Search by ID, area or category" oninput="renderComplaints()">
+   <select id="statusFilter" onchange="renderComplaints()">
+    <option value="">All Statuses</option>
+    <option>Pending</option><option>In Progress</option><option>Resolved</option>
+   </select>
+   <button class="secondary" onclick="exportCSV()">Export CSV</button>
+  </div>
+  <div id="complaintList"></div>
+ </section>
+ <section class="panel">
+  <h2>Complaint Hotspots</h2>
+  <div id="hotspotList"></div>
+ </section>
+</section>
+
+<!-- TRACK PAGE -->
+<section id="trackPage" class="hidden">
+ <div class="hero">
+  <h2>Track Your Complaint</h2>
+  <p>Enter your complaint ID to view its current status and progress.</p>
+ </div>
+ <section class="panel">
+  <label for="trackingId">Complaint ID</label>
+  <input id="trackingId" placeholder="Example: CL12345678">
+  <button class="primary" onclick="trackComplaint()">Track Complaint</button>
+  <div id="trackingResult" aria-live="polite"></div>
+ </section>
+</section>
+
+<!-- MAP PAGE -->
+<section id="mapPage" class="hidden">
+ <div class="hero">
+  <h2>Community Complaint Map</h2>
+  <p>Explore complaint locations and identify areas that need attention.</p>
+ </div>
+ <section class="panel">
+  <h2>Reported Complaint Locations</h2>
+  <p class="muted">Only complaints with a selected map location appear here.</p>
+  <div id="complaintMap"></div>
+  <div id="mapSummary"></div>
+ </section>
+</section>
+
+<!-- ANALYTICS PAGE -->
+<section id="analyticsPage" class="hidden">
+ <div class="hero">
+  <h2>Complaint Analytics</h2>
+  <p>Understand civic issues through complaint trends, categories and priority levels.</p>
+ </div>
+ <div class="stats">
+  <div class="stat"><strong id="analyticsTotal">0</strong><span>Total Reports</span></div>
+  <div class="stat"><strong id="analyticsHigh">0</strong><span>High Priority</span></div>
+  <div class="stat"><strong id="analyticsResolved">0</strong><span>Resolution Rate</span></div>
+  <div class="stat"><strong id="analyticsDepartments">0</strong><span>Departments</span></div>
+ </div>
+ <div class="grid-two" style="margin-top:20px">
+  <section class="panel">
+   <h2>Complaints by Category</h2>
+   <canvas id="categoryChart"></canvas>
+  </section>
+  <section class="panel">
+   <h2>Complaints by Priority</h2>
+   <canvas id="priorityChart"></canvas>
+  </section>
+  <section class="panel">
+   <h2>Complaint Status</h2>
+   <canvas id="statusChart"></canvas>
+  </section>
+  <section class="panel">
+   <h2>Department Workload</h2>
+   <canvas id="departmentChart"></canvas>
+  </section>
+ </div>
+</section>
+
+<!-- FEEDBACK PAGE -->
+<section id="feedbackPage" class="hidden">
+ <div class="hero">
+  <h2>Citizen Feedback</h2>
+  <p>Share your experience after a complaint has been resolved.</p>
+ </div>
+ <section class="panel">
+  <h2>Submit Feedback</h2>
+  <label for="feedbackId">Complaint ID</label>
+  <input id="feedbackId" placeholder="Enter your complaint ID">
+  <label for="rating">Rate the Resolution</label>
+  <select id="rating">
+   <option value="">Choose rating</option>
+   <option value="5">★★★★★ - Excellent</option>
+   <option value="4">★★★★ - Good</option>
+   <option value="3">★★★ - Average</option>
+   <option value="2">★★ - Poor</option>
+   <option value="1">★ - Very Poor</option>
+  </select>
+  <label for="feedbackText">Your Feedback</label>
+  <textarea id="feedbackText" placeholder="Tell us about your experience..."></textarea>
+  <button class="primary" onclick="submitFeedback()">Submit Feedback</button>
+  <div id="feedbackMessage"></div>
+ </section>
+ <section class="panel">
+  <h2>Feedback Summary</h2>
+  <div id="feedbackSummary"></div>
+ </section>
+</section>
+
+</main>
+<footer>CivicLens AI · Smart Civic Complaint Management</footer>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+/* ---------------- BASIC DATA ---------------- */
+
+let complaints=JSON.parse(localStorage.getItem("civicLensComplaints")||"[]");
+let feedbacks=JSON.parse(localStorage.getItem("civicLensFeedback")||"[]");
+let selectedLatLng=null;
+let selectedPhoto="";
+let map=null;
+let marker=null;
+let complaintMap=null;
+let mapMarkers=[];
+let charts={};
+let currentLanguage="en";
+let speechRecognition=null;
+let voiceIsListening=false;
+
+const departments={
+ Road:"Road Maintenance Department",
+ Water:"Water Supply Department",
+ Garbage:"Sanitation Department",
+ Streetlight:"Electrical Department",
+ Drainage:"Drainage and Sewerage Department",
+ Other:"General Civic Administration"
+};
+
+function saveComplaints(){
+ localStorage.setItem("civicLensComplaints",JSON.stringify(complaints));
+}
+function saveFeedback(){
+ localStorage.setItem("civicLensFeedback",JSON.stringify(feedbacks));
+}
+function escapeHTML(value){
+ return String(value??"").replace(/[&<>"']/g,ch=>({
+  "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+ }[ch]));
+}
+
+function showPage(page){
+
+ const pageIds = {
+  home: "homePage",
+  dashboard: "dashboardPage",
+  track: "trackPage",
+  mapPage: "mapPage",
+  analytics: "analyticsPage",
+  feedback: "feedbackPage"
+ };
+
+ Object.keys(pageIds).forEach(name => {
+  document.getElementById(pageIds[name])
+   .classList.toggle("hidden", name !== page);
+ });
+
+ if(page === "dashboard") renderComplaints();
+
+ if(page === "mapPage"){
+  renderComplaintMap();
+  if(complaintMap){
+   setTimeout(() => complaintMap.invalidateSize(), 100);
+  }
+ }
+
+ if(page === "analytics") renderAnalytics();
+
+ if(page === "feedback") renderFeedbackSummary();
+
+ if(page === "home" && map){
+  setTimeout(() => map.invalidateSize(), 100);
+ }
+}
+
+
+/* ---------------- LANGUAGE ---------------- */
+
+function changeLanguage(language){
+ currentLanguage=language;
+ document.documentElement.lang=language;
+}
+
+/* ---------------- MAP ---------------- */
+
+function initialiseMap(){
+ if(!window.L)return;
+ map=L.map("map").setView([13.05,74.92],14);
+ L.tileLayer("https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png",{
+  attribution:"&copy; OpenStreetMap contributors",maxZoom:19
+ }).addTo(map);
+ map.on("click",e=>setSelectedLocation(e.latlng.lat,e.latlng.lng));
+}
+
+function setSelectedLocation(lat,lng){
+ selectedLatLng={lat,lng};
+ if(marker)map.removeLayer(marker);
+ marker=L.marker([lat,lng]).addTo(map);
+ document.getElementById("selectedLocation").textContent=
+  "Selected: "+lat.toFixed(5)+", "+lng.toFixed(5);
+}
+
+function useMyLocation(){
+ if(!navigator.geolocation){
+  alert("Geolocation is not supported by this browser.");return;
+ }
+ navigator.geolocation.getCurrentPosition(position=>{
+  const lat=position.coords.latitude;
+  const lng=position.coords.longitude;
+  setSelectedLocation(lat,lng);
+  map.setView([lat,lng],16);
+ },()=>alert("Location permission was denied or location is unavailable."));
+}
+
+function renderComplaintMap(){
+ if(!window.L)return;
+ if(!complaintMap){
+  complaintMap=L.map("complaintMap").setView([13.05,74.92],12);
+  L.tileLayer("https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png",{
+   attribution:"&copy; OpenStreetMap contributors",maxZoom:19
+  }).addTo(complaintMap);
+ }
+ mapMarkers.forEach(m=>complaintMap.removeLayer(m));
+ mapMarkers=[];
+ let count=0;
+ complaints.forEach(c=>{
+  if(!c.location)return;
+  count++;
+  const m=L.marker([c.location.lat,c.location.lng]).addTo(complaintMap);
+  m.bindPopup(
+   "<b>"+escapeHTML(c.id)+"</b><br>"+
+   escapeHTML(c.category)+"<br>"+
+   escapeHTML(c.area)+"<br>"+
+   "Priority: "+escapeHTML(c.priority)+"<br>"+
+   "Status: "+escapeHTML(c.status)
+  );
+  mapMarkers.push(m);
+ });
+ document.getElementById("mapSummary").innerHTML=
+  "<p class='muted'>"+count+" complaint(s) have map locations. "+
+  (complaints.length-count)+" complaint(s) do not have coordinates.</p>";
+ if(mapMarkers.length){
+  const group=L.featureGroup(mapMarkers);
+  complaintMap.fitBounds(group.getBounds().pad(0.2));
+ }
+}
+
+/* ---------------- PHOTO UPLOAD ---------------- */
+
+function handlePhoto(file){
+ if(!file)return;
+ if(!file.type.startsWith("image/")){
+  alert("Please select an image file.");return;
+ }
+ if(file.size>5*1024*1024){
+  alert("Please choose an image smaller than 5 MB.");return;
+ }
+ const reader=new FileReader();
+ reader.onload=()=>{
+  selectedPhoto=reader.result;
+  const preview=document.getElementById("photoPreview");
+  preview.src=selectedPhoto;
+  preview.style.display="block";
+  document.getElementById("removePhoto").classList.remove("hidden");
+ };
+ reader.readAsDataURL(file);
+}
+document.getElementById("cameraInput").addEventListener("change",function(){
+ handlePhoto(this.files[0]);this.value="";
+});
+document.getElementById("uploadInput").addEventListener("change",function(){
+ handlePhoto(this.files[0]);this.value="";
+});
+function removePhoto(){
+ selectedPhoto="";
+ document.getElementById("photoPreview").src="";
+ document.getElementById("photoPreview").style.display="none";
+ document.getElementById("removePhoto").classList.add("hidden");
+}
+
+/* ---------------- VOICE INPUT ---------------- */
+
+function toggleVoiceInput(){
+ const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+ const button=document.getElementById("voiceButton");
+ const status=document.getElementById("voiceStatus");
+ const description=document.getElementById("description");
+
+ if(!SpeechRecognition){
+  status.textContent="Voice input is not supported in this browser. Please try Google Chrome.";
+  return;
+ }
+ if(voiceIsListening&&speechRecognition){
+  speechRecognition.stop();return;
+ }
+ const languageAtStart=currentLanguage;
+ const originalText=description.value.trim();
+ speechRecognition=new SpeechRecognition();
+ speechRecognition.lang=languageAtStart==="kn"?"kn-IN":"en-IN";
+ speechRecognition.continuous=true;
+ speechRecognition.interimResults=true;
+
+ speechRecognition.onstart=()=>{
+  voiceIsListening=true;
+  button.textContent="⏹ Stop Speaking";
+  status.textContent="Listening... Please describe the problem.";
+ };
+ speechRecognition.onresult=event=>{
+  let finalText="",interimText="";
+  for(let i=0;i<event.results.length;i++){
+   const transcript=event.results[i][0].transcript;
+   if(event.results[i].isFinal)finalText+=transcript+" ";
+   else interimText+=transcript;
+  }
+  description.value=[originalText,finalText.trim(),interimText.trim()]
+   .filter(Boolean).join(" ");
+ };
+ speechRecognition.onerror=event=>{
+  status.textContent="Voice input error: "+event.error+". Check microphone permission.";
+ };
+ speechRecognition.onend=()=>{
+  voiceIsListening=false;
+  speechRecognition=null;
+  button.textContent="🎤 Speak Complaint";
+  status.textContent="Voice input finished. Please review the text before submitting.";
+ };
+ try{speechRecognition.start();}
+ catch(error){
+  voiceIsListening=false;speechRecognition=null;
+  button.textContent="🎤 Speak Complaint";
+  status.textContent="Could not start voice input. Please try again.";
+ }
+}
+
+/* ---------------- SMART COMPLAINT ANALYSIS ---------------- */
+
+/* This is a transparent rule-based prototype, not a connected AI model. */
+
+function analyseComplaint(description,category){
+ const text=description.toLowerCase();
+ const urgentWords=[
+  "danger","emergency","accident","injury","life threatening",
+  "overflowing","collapsed","electric shock","fire","ಅಪಾಯ","ಅಪಘಾತ"
+ ];
+ const highWords=[
+  "severe","major","large","blocked","broken","dangerous",
+  "not working","overflow","ತೀವ್ರ","ದೊಡ್ಡ","ಮುರಿದ"
+ ];
+ const lowWords=["minor","small","slight","ಕಡಿಮೆ"];
+
+ let priority="Medium";
+ let reason="A civic issue has been reported and requires inspection.";
+
+ if(urgentWords.some(w=>text.includes(w))){
+  priority="High";
+  reason="The description contains a possible emergency or safety-related term.";
+ }else if(highWords.some(w=>text.includes(w))){
+  priority="High";
+  reason="The description contains words indicating a major or severe issue.";
+ }else if(lowWords.some(w=>text.includes(w))){
+  priority="Low";
+  reason="The description appears to describe a minor issue.";
+ }
+
+ const words=description.trim().split(/\s+/);
+ const summary=words.length>18?words.slice(0,18).join(" ")+"...":description;
+
+ const actions={
+  Road:"Inspect the damaged road and arrange repair or barricading if necessary.",
+  Water:"Inspect the water supply line and check for leakage or interruption.",
+  Garbage:"Arrange waste collection and inspect the affected area.",
+  Streetlight:"Inspect the electrical connection and repair or replace the streetlight.",
+  Drainage:"Inspect the drain and arrange cleaning or blockage removal.",
+  Other:"Review the complaint and forward it to the appropriate civic department."
+ };
+
+ return {
+  priority,
+  reason,
+  summary,
+  department:departments[category]||departments.Other,
+  action:actions[category]||actions.Other
+ };
+}
+
+function distanceInMetres(a,b){
+ const R=6371000;
+ const toRad=x=>x*Math.PI/180;
+ const dLat=toRad(b.lat-a.lat);
+ const dLon=toRad(b.lng-a.lng);
+ const x=Math.sin(dLat/2)**2+
+  Math.cos(toRad(a.lat))*Math.cos(toRad(b.lat))*Math.sin(dLon/2)**2;
+ return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));
+}
+
+function findDuplicate(category,description,location){
+ const words=description.toLowerCase().split(/\W+/).filter(w=>w.length>3);
+ return complaints.find(c=>{
+  if(c.category!==category)return false;
+  const other=c.description.toLowerCase();
+  const overlap=words.filter(w=>other.includes(w)).length;
+  const similarity=words.length?overlap/words.length:0;
+  let nearby=false;
+  if(location&&c.location){
+   nearby=distanceInMetres(location,c.location)<180;
+  }
+  return similarity>=0.4||(nearby&&similarity>=0.2);
+ });
+}
+
+/* ---------------- COMPLAINT SUBMISSION ---------------- */
+
+document.getElementById("complaintForm").addEventListener("submit",function(e){
+ e.preventDefault();
+
+ const name=document.getElementById("citizenName").value.trim();
+ const category=document.getElementById("category").value;
+ const area=document.getElementById("area").value.trim();
+ const description=document.getElementById("description").value.trim();
+
+ if(!name||!category||!area||!description){
+  alert("Please fill in all required fields.");return;
+ }
+
+ const duplicate=findDuplicate(category,description,selectedLatLng);
+ const analysis=analyseComplaint(description,category);
+
+ const complaint={
+  id:"CL"+Date.now().toString().slice(-8),
+  name,category,area,description,
+  location:selectedLatLng?{...selectedLatLng}:null,
+  photo:selectedPhoto,
+  priority:analysis.priority,
+  priorityReason:analysis.reason,
+  summary:analysis.summary,
+  department:analysis.department,
+  recommendedAction:analysis.action,
+  status:"Pending",
+  createdAt:new Date().toISOString(),
+  duplicateOf:duplicate?duplicate.id:null,
+  authorityNotes:"",
+  resolutionProof:"",
+  feedback:null,
+  history:[{status:"Pending",date:new Date().toISOString(),note:"Complaint submitted by citizen."}]
+ };
+
+ complaints.unshift(complaint);
+ saveComplaints();
+
+ document.getElementById("submitMessage").innerHTML=`
+  <div class="complaint">
+   <h3>Complaint submitted successfully!</h3>
+   <p>Your Complaint ID: <strong>${escapeHTML(complaint.id)}</strong></p>
+   <p>Priority: <span class="tag ${complaint.priority.toLowerCase()}">${complaint.priority}</span></p>
+   <div class="result-box">
+    <h3>Smart Analysis Result</h3>
+    <p><strong>Summary:</strong> ${escapeHTML(complaint.summary)}</p>
+    <p><strong>Priority reason:</strong> ${escapeHTML(complaint.priorityReason)}</p>
+    <p><strong>Suggested Department:</strong> ${escapeHTML(complaint.department)}</p>
+    <p><strong>Recommended Action:</strong> ${escapeHTML(complaint.recommendedAction)}</p>
+   </div>
+   ${duplicate?`<p>Possible duplicate of ${escapeHTML(duplicate.id)}. Authorities can review both reports.</p>`:""}
+   <p>Please save your complaint ID to track its status.</p>
+   <button class="secondary small-button" onclick="copyComplaintId('${complaint.id}')">Copy Complaint ID</button>
+  </div>`;
+
+ this.reset();
+ removePhoto();
+ selectedLatLng=null;
+ if(marker&&map){map.removeLayer(marker);marker=null;}
+ document.getElementById("selectedLocation").textContent="No location selected yet.";
+});
+
+function copyComplaintId(id){
+ if(navigator.clipboard){
+  navigator.clipboard.writeText(id).then(()=>alert("Complaint ID copied."));
+ }else{
+  alert("Your complaint ID is "+id);
+ }
+}
+
+/* ---------------- DASHBOARD ---------------- */
+
+function updateStats(){
+ document.getElementById("totalCount").textContent=complaints.length;
+ document.getElementById("pendingCount").textContent=complaints.filter(c=>c.status==="Pending").length;
+ document.getElementById("progressCount").textContent=complaints.filter(c=>c.status==="In Progress").length;
+ document.getElementById("resolvedCount").textContent=complaints.filter(c=>c.status==="Resolved").length;
+}
+
+function renderComplaints(){
+ updateStats();
+ const list=document.getElementById("complaintList");
+ const search=document.getElementById("searchComplaint").value.toLowerCase();
+ const filter=document.getElementById("statusFilter").value;
+
+ const filtered=complaints.filter(c=>{
+  const matches=[c.id,c.area,c.category,c.description,c.department].join(" ").toLowerCase().includes(search);
+  return matches&&(!filter||c.status===filter);
+ });
+
+ if(!filtered.length){
+  list.innerHTML="<p class='muted'>No complaints found.</p>";
+ }else{
+  list.innerHTML=filtered.map(c=>`
+   <article class="complaint">
+    <h3>${escapeHTML(c.category)} complaint</h3>
+    <p><strong>ID:</strong> ${escapeHTML(c.id)}</p>
+    <p><strong>Citizen:</strong> ${escapeHTML(c.name)}</p>
+    <p><strong>Area:</strong> ${escapeHTML(c.area)}</p>
+    <p><strong>Description:</strong> ${escapeHTML(c.description)}</p>
+    <p><strong>AI Summary:</strong> ${escapeHTML(c.summary||c.description)}</p>
+    <span class="tag ${escapeHTML((c.priority||"Medium").toLowerCase())}">Priority: ${escapeHTML(c.priority)}</span>
+    <span class="tag status ${c.status==="Resolved"?"resolved":""}">${escapeHTML(c.status)}</span>
+    ${c.duplicateOf?`<p class="muted">Possible duplicate of ${escapeHTML(c.duplicateOf)}</p>`:""}
+    ${c.photo?`<img src="${c.photo}" alt="Complaint photo" style="max-width:180px;max-height:150px;display:block;margin:10px 0;border-radius:8px">`:""}
+    <hr>
+    <p><strong>Suggested Department:</strong> ${escapeHTML(c.department||"Not assigned")}</p>
+    <label>Assign Department</label>
+    <select onchange="assignDepartment('${c.id}',this.value)">
+     ${Object.values(departments).map(d=>`<option value="${escapeHTML(d)}" ${c.department===d?"selected":""}>${escapeHTML(d)}</option>`).join("")}
+    </select>
+    <p><strong>Priority explanation:</strong> ${escapeHTML(c.priorityReason||"Not available")}</p>
+    <p><strong>Recommended action:</strong> ${escapeHTML(c.recommendedAction||"Review complaint")}</p>
+    <label>Update Status</label>
+    <select onchange="updateStatus('${c.id}',this.value)">
+     <option ${c.status==="Pending"?"selected":""}>Pending</option>
+     <option ${c.status==="In Progress"?"selected":""}>In Progress</option>
+     <option ${c.status==="Resolved"?"selected":""}>Resolved</option>
+    </select>
+    <label>Authority Notes</label>
+    <textarea id="notes-${c.id}" placeholder="Enter inspection or action notes...">${escapeHTML(c.authorityNotes||"")}</textarea>
+    <label>Resolution Proof Photo (optional)</label>
+    <input type="file" accept="image/*" onchange="addResolutionProof('${c.id}',this.files[0])">
+    ${c.resolutionProof?`<img src="${c.resolutionProof}" alt="Resolution proof" style="max-width:180px;max-height:150px;display:block;margin:10px 0;border-radius:8px">`:""}
+    <button class="primary small-button" onclick="saveAuthorityNotes('${c.id}')">Save Authority Update</button>
+    ${c.history?.length?`<p class="muted">Last update: ${escapeHTML(c.history[c.history.length-1].date)}</p>`:""}
+    ${c.feedback?`<p><strong>Citizen rating:</strong> ${c.feedback.rating}/5 — ${escapeHTML(c.feedback.text)}</p>`:""}
+   </article>
+  `).join("");
+ }
+ renderHotspots();
+}
+
+function assignDepartment(id,department){
+ const c=complaints.find(x=>x.id===id);
+ if(!c)return;
+ c.department=department;
+ saveComplaints();
+ renderComplaints();
+}
+
+function updateStatus(id,status){
+ const c=complaints.find(x=>x.id===id);
+ if(!c)return;
+ if(c.status!==status){
+  c.status=status;
+  c.history=c.history||[];
+  c.history.push({
+   status,
+   date:new Date().toISOString(),
+   note:"Status updated by authority."
+  });
+ }
+ saveComplaints();
+ renderComplaints();
+}
+
+function saveAuthorityNotes(id){
+ const c=complaints.find(x=>x.id===id);
+ if(!c)return;
+ c.authorityNotes=document.getElementById("notes-"+id).value.trim();
+ c.history=c.history||[];
+ c.history.push({
+  status:c.status,
+  date:new Date().toISOString(),
+  note:"Authority added an update."
+ });
+ saveComplaints();
+ alert("Authority update saved.");
+ renderComplaints();
+}
+
+function addResolutionProof(id,file){
+ if(!file)return;
+ if(!file.type.startsWith("image/")){
+  alert("Please select an image.");return;
+ }
+ if(file.size>5*1024*1024){
+  alert("Please select an image smaller than 5 MB.");return;
+ }
+ const reader=new FileReader();
+ reader.onload=()=>{
+  const c=complaints.find(x=>x.id===id);
+  if(!c)return;
+  c.resolutionProof=reader.result;
+  saveComplaints();
+  renderComplaints();
+ };
+ reader.readAsDataURL(file);
+}
+
+function renderHotspots(){
+ const counts={};
+ complaints.forEach(c=>{
+  const area=c.area||"Unknown";
+  counts[area]=(counts[area]||0)+1;
+ });
+ const sorted=Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+ const container=document.getElementById("hotspotList");
+ if(!sorted.length){
+  container.innerHTML="<p class='muted'>No complaint data available yet.</p>";return;
+ }
+ container.innerHTML=sorted.map(([area,count])=>`
+  <div class="complaint">
+   <strong>${escapeHTML(area)}</strong>
+   <span class="tag">${count} complaint(s)</span>
+  </div>
+ `).join("");
+}
+
+/* ---------------- CITIZEN TRACKING ---------------- */
+
+function trackComplaint(){
+ const id=document.getElementById("trackingId").value.trim().toUpperCase();
+ const result=document.getElementById("trackingResult");
+ const c=complaints.find(x=>x.id.toUpperCase()===id);
+
+ if(!c){
+  result.innerHTML="<p class='muted'>No complaint found. Please check your complaint ID.</p>";return;
+ }
+
+ const steps=["Pending","In Progress","Resolved"];
+ const current=steps.indexOf(c.status);
+ result.innerHTML=`
+  <div class="complaint">
+   <h3>Complaint Details</h3>
+   <p><strong>Complaint ID:</strong> ${escapeHTML(c.id)}</p>
+   <p><strong>Category:</strong> ${escapeHTML(c.category)}</p>
+   <p><strong>Area:</strong> ${escapeHTML(c.area)}</p>
+   <p><strong>Description:</strong> ${escapeHTML(c.description)}</p>
+   <p><strong>Priority:</strong> ${escapeHTML(c.priority)}</p>
+   <p><strong>Department:</strong> ${escapeHTML(c.department||"Not assigned")}</p>
+   <p><strong>Authority Notes:</strong> ${escapeHTML(c.authorityNotes||"No authority update yet.")}</p>
+   <h3>Complaint Progress</h3>
+   ${steps.map((step,i)=>`<div class="progress-step">${i<=current?"✅":"⚪"} ${step}</div>`).join("")}
+   ${c.photo?`<p><strong>Submitted Photo</strong></p><img src="${c.photo}" alt="Submitted complaint" style="max-width:180px;border-radius:8px">`:""}
+   ${c.resolutionProof?`<p><strong>Resolution Proof</strong></p><img src="${c.resolutionProof}" alt="Resolution proof" style="max-width:180px;border-radius:8px">`:""}
+   <h3>Update History</h3>
+   ${(c.history||[]).map(h=>`
+    <div class="progress-step">
+     <strong>${escapeHTML(h.status)}</strong>
+     <p>${escapeHTML(h.note)}</p>
+     <p class="muted">${escapeHTML(h.date)}</p>
+    </div>
+   `).join("")}
+   ${c.status==="Resolved"?
+    `<button class="primary" onclick="openFeedbackFor('${c.id}')">Give Feedback</button>`:
+    `<p class="muted">Feedback becomes available after the complaint is resolved.</p>`}
+  </div>`;
+}
+
+function openFeedbackFor(id){
+ document.getElementById("feedbackId").value=id;
+ showPage("feedback");
+}
+
+/* ---------------- FEEDBACK ---------------- */
+
+function submitFeedback(){
+ const id=document.getElementById("feedbackId").value.trim().toUpperCase();
+ const rating=document.getElementById("rating").value;
+ const textValue=document.getElementById("feedbackText").value.trim();
+ const message=document.getElementById("feedbackMessage");
+ const c=complaints.find(x=>x.id.toUpperCase()===id);
+
+ if(!c){
+  message.innerHTML="<p class='muted'>Complaint not found. Check the ID.</p>";return;
+ }
+ if(c.status!=="Resolved"){
+  message.innerHTML="<p class='muted'>Feedback can be submitted after the complaint is resolved.</p>";return;
+ }
+ if(!rating){
+  message.innerHTML="<p class='muted'>Please select a rating.</p>";return;
+ }
+ if(c.feedback){
+  message.innerHTML="<p class='muted'>Feedback has already been submitted for this complaint.</p>";return;
+ }
+
+ const feedback={
+  complaintId:c.id,
+  rating:Number(rating),
+  text:textValue,
+  date:new Date().toISOString()
+ };
+ c.feedback=feedback;
+ feedbacks.push(feedback);
+ saveComplaints();
+ saveFeedback();
+ message.innerHTML="<div class='result-box'><strong>Thank you!</strong><p>Your feedback has been submitted.</p></div>";
+ document.getElementById("rating").value="";
+ document.getElementById("feedbackText").value="";
+ renderFeedbackSummary();
+}
+
+function renderFeedbackSummary(){
+ const container=document.getElementById("feedbackSummary");
+ if(!feedbacks.length){
+  container.innerHTML="<p class='muted'>No citizen feedback has been submitted yet.</p>";return;
+ }
+ const average=feedbacks.reduce((sum,f)=>sum+f.rating,0)/feedbacks.length;
+ container.innerHTML=`
+  <p><strong>Total feedback responses:</strong> ${feedbacks.length}</p>
+  <p><strong>Average rating:</strong> ${average.toFixed(1)} / 5</p>
+  ${feedbacks.map(f=>`
+   <div class="complaint">
+    <strong>${escapeHTML(f.complaintId)}</strong>
+    <span class="tag">${f.rating}/5</span>
+    <p>${escapeHTML(f.text||"No written comment.")}</p>
+   </div>
+  `).join("")}
+ `;
+}
+
+/* ---------------- ANALYTICS ---------------- */
+
+function renderAnalytics(){
+ const total=complaints.length;
+ const high=complaints.filter(c=>c.priority==="High").length;
+ const resolved=complaints.filter(c=>c.status==="Resolved").length;
+ const deptCount=new Set(complaints.map(c=>c.department).filter(Boolean)).size;
+
+ document.getElementById("analyticsTotal").textContent=total;
+ document.getElementById("analyticsHigh").textContent=high;
+ document.getElementById("analyticsResolved").textContent=
+  total?Math.round(resolved/total*100)+"%":"0%";
+ document.getElementById("analyticsDepartments").textContent=deptCount;
+
+ const categories=["Road","Water","Garbage","Streetlight","Drainage","Other"];
+ const priorities=["High","Medium","Low"];
+ const statuses=["Pending","In Progress","Resolved"];
+ const categoryValues=categories.map(x=>complaints.filter(c=>c.category===x).length);
+ const priorityValues=priorities.map(x=>complaints.filter(c=>c.priority===x).length);
+ const statusValues=statuses.map(x=>complaints.filter(c=>c.status===x).length);
+
+ const depts=[...new Set(complaints.map(c=>c.department).filter(Boolean))];
+ const deptValues=depts.map(d=>complaints.filter(c=>c.department===d).length);
+
+ createChart("categoryChart","bar",categories,categoryValues,"Complaints");
+ createChart("priorityChart","doughnut",priorities,priorityValues,"Priority");
+ createChart("statusChart","pie",statuses,statusValues,"Status");
+ createChart("departmentChart","bar",depts,deptValues,"Assigned complaints");
+}
+
+function createChart(id,type,labels,values,label){
+ const canvas=document.getElementById(id);
+ if(charts[id])charts[id].destroy();
+ charts[id]=new Chart(canvas,{
+  type,
+  data:{
+   labels,
+   datasets:[{label,data:values,backgroundColor:[
+    "#1769aa","#2877a8","#5c9bc5","#91bad7","#b4d2e7","#d3e4f1"
+   ],borderWidth:1}]
+  },
+  options:{
+   responsive:true,
+   plugins:{legend:{display:type!=="bar"}},
+   scales:type==="bar"?{y:{beginAtZero:true,ticks:{precision:0}}}:{}
+  }
+ });
+}
+
+/* ---------------- CSV EXPORT ---------------- */
+
+function exportCSV(){
+ if(!complaints.length){
+  alert("There are no complaints to export.");return;
+ }
+ const rows=[
+  ["ID","Name","Category","Area","Description","Summary","Priority","Priority Reason","Department","Status","Authority Notes","Date"],
+  ...complaints.map(c=>[
+   c.id,c.name,c.category,c.area,c.description,c.summary,c.priority,
+   c.priorityReason,c.department,c.status,c.authorityNotes,c.createdAt
+  ])
+ ];
+ const csv=rows.map(row=>row.map(value=>
+  '"'+String(value??"").replace(/"/g,'""')+'"'
+ ).join(",")).join("\n");
+ const blob=new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8;"});
+ const url=URL.createObjectURL(blob);
+ const a=document.createElement("a");
+ a.href=url;
+ a.download="CivicLens-Complaints.csv";
+ a.click();
+ URL.revokeObjectURL(url);
+}
+
+/* ---------------- RESET AND STARTUP ---------------- */
+
+document.getElementById("complaintForm").addEventListener("reset",()=>{
+ if(speechRecognition&&voiceIsListening)speechRecognition.stop();
+ setTimeout(()=>{
+  removePhoto();
+  selectedLatLng=null;
+  if(marker&&map){map.removeLayer(marker);marker=null;}
+  document.getElementById("selectedLocation").textContent="No location selected yet.";
+ },0);
+});
+
+window.addEventListener("DOMContentLoaded",()=>{
+ initialiseMap();
+ renderComplaints();
+});
+</script>
+</body>
+</html>
